@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SETTINGS>
+  <DEVICE>
+    <family>TMS570LS04x</family>
+    <device>TMS570LS0432PZ</device>
+    <dilfile>570 uart.dil</dilfile>
+    <tools>ti</tools>
+  </DEVICE>
+  <VERSION>
+    <version>04.07.01</version>
+  </VERSION>
+  <HET>
+    <FILENAME>
+      <HET1ASMHDR>
+        <NAME/>
+      </HET1ASMHDR>
+      <HET1ASMSRC>
+        <NAME/>
+      </HET1ASMSRC>
+    </FILENAME>
+  </HET>
+</SETTINGS>
