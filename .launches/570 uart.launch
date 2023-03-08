@@ -4,6 +4,7 @@
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROGRAM.TMS570LS043x.ccxml.Texas Instruments XDS100v2 USB Debug Probe/CortexR4" value="${build_artifact:570 uart}"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.TMS570LS043x.ccxml.Texas Instruments XDS100v2 USB Debug Probe/CortexR4" value="570 uart"/>
 <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:570 uart}"/>
+<stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.TMS570LS043x.ccxml.Texas Instruments XDS100v2 USB Debug Probe/CortexR4" value="C:\Users\ticno\Desktop\ccs10 workspace\570 uart\Debug\570 uart.out"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/570 uart"/>
 </listAttribute>

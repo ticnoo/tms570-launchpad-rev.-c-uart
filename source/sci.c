@@ -112,7 +112,7 @@ void sciInit(void)
 
 
     /** - set SCI pins output direction */
-    scilinREG->PIO1 = (uint32)((uint32)0U << 2U)  /* tx pin */
+    scilinREG->PIO1 = (uint32)((uint32)1U << 2U)  /* tx pin */
                     | (uint32)((uint32)0U << 1U); /* rx pin */
 
 
@@ -144,12 +144,12 @@ void sciInit(void)
     scilinREG->SETINT = (uint32)((uint32)0U << 26U)  /* Framing error */
                       | (uint32)((uint32)0U << 25U)  /* Overrun error */
                       | (uint32)((uint32)0U << 24U)  /* Parity error */
-                      | (uint32)((uint32)0U << 9U)  /* Receive */
+                      | (uint32)((uint32)1U << 9U)  /* Receive */
                       | (uint32)((uint32)0U << 1U)  /* Wakeup */
                       | (uint32)((uint32)0U);  /* Break detect */
 
     /** - initialize global transfer variables */
-    g_sciTransfer_t.mode      = (uint32)0U << 8U;
+    g_sciTransfer_t.mode      = (uint32)1U << 8U;
     g_sciTransfer_t.tx_length = 0U;
 	g_sciTransfer_t.rx_length = 0U;
 

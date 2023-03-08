@@ -14,6 +14,14 @@ source/sys_main.obj: C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/m
 source/sys_main.obj: C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/machine/_stdint.h
 source/sys_main.obj: C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/sys/_stdint.h
 source/sys_main.obj: C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/stdbool.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/system.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_system.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_gio.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_flash.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_tcram.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/gio.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/sci.h
+source/sys_main.obj: C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_sci.h
 
 ../source/sys_main.c: 
 C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/sys_common.h: 
@@ -29,3 +37,11 @@ C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/machine/_types.h:
 C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/machine/_stdint.h: 
 C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/sys/_stdint.h: 
 C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include/stdbool.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/system.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_system.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_gio.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_flash.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_tcram.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/gio.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/sci.h: 
+C:/Users/ticno/Desktop/ccs10\ workspace/570\ uart/include/reg_sci.h: 

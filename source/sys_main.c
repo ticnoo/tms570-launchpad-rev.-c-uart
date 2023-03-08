@@ -50,6 +50,11 @@
 #include "sys_common.h"
 
 /* USER CODE BEGIN (1) */
+
+#include "system.h"
+#include "gio.h"
+#include "sci.h"
+
 /* USER CODE END */
 
 /** @fn void main(void)
@@ -61,11 +66,37 @@
 */
 
 /* USER CODE BEGIN (2) */
+
+//char Text[] = "Hello world";
+uint8_t numbers[] = {1, 2, 3, 4}; // абвг
+uint8_t *pnumbers = &numbers;
+
+
+void delay(time)
+{
+	while(time>0) time--;
+}
+
 /* USER CODE END */
 
 int main(void)
 {
 /* USER CODE BEGIN (3) */
+
+	systemInit();
+	gioInit();
+	sciInit();
+
+	while(1)
+	{
+
+		if (gioGetBit(gioPORTA, 7) == 1)
+		{
+			gioToggleBit(gioPORTA, 2);
+			sciSend(scilinREG, sizeof(numbers), pnumbers);
+			delay(5000000);
+		}
+	}
 /* USER CODE END */
 
     return 0;
