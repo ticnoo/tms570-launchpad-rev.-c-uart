@@ -70,21 +70,27 @@
 
 /* USER CODE BEGIN (2) */
 
-char month[12][11] = {"\tJanuary\0", "\tFebruary\0", "\tMarch\0", "\tApril\0", "\tMay\0", "\tJune\0", "\tJuly\0", "\tAugust\0", "\tSeptember\0", "\tOctober\0", "\tNovember\0", "\tDecember\0"};
+char month[12][11] = {"January ", "February ", "March ", "April ", "May ", "June ", "July ", "August ", "September ", "October ", "November ", "December "};
 
 uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-uint8_t Jan_1st_2023_days_before = 6;
+uint8_t days_year_before = 6;
+//uint8_t days_year_before = 4;
 
-//char days[] = "Su Mo Tu We Th Fr Sa\n\r\0";
+
+char days[23] = "Su Mo Tu We Th Fr Sa\n\r\0";
+char *pdays = &days[0];
 
 uint32_t time = 100000;
 
 
 uint8_t current_month = 2;
+uint16_t year = 2023;
+//uint16_t year = 2021;
 
 bool next_month = true;
 bool send_next = false;
+bool bottom_flag = false;
 
 
 void delay(uint32_t time)
@@ -100,22 +106,51 @@ void callendar(uint8_t month_number)
 	uint8_t week_day = 0;
 	uint8_t i=0;
 	uint16_t days_before_current = 0;
+	char year_send[5];
+
+	year_send[0] = year/1000 + '0';
+	year_send[1] = (year/100)%10 + '0';
+	year_send[2] = (year/10)%100 + '0';
+	year_send[3] = year%10 + '0';
+	year_send[4] = '\0';
+
+	char *pyear_send = &year_send[0];
 
 	char *pmonth = &month[month_number][0];
 
-	sciSend(scilinREG, 11, (uint8_t*) pmonth);
+	char month_year[20];
+	char *pmonth_year = &month_year[0];
+
+
+
+	sciSend(scilinREG, 20, (uint8_t*) strcat(strcat(pmonth_year, pmonth),pyear_send));
 	delay(time);
+
+	memset(pmonth_year, '\0', 20);
 
 	sciSend(scilinREG, 3, "\n\r\0");
 	delay(time);
 
+	sciSend(scilinREG, 23, (uint8_t*) pdays);
+	delay(time+time);
+
+	if (year%4 == 0)
+	{
+		days_in_months[1] = 29;
+		//days_before_current--;
+	}
+	else
+	{
+		days_in_months[1] = 28;
+	}
 
 	for (i = 0; i < month_number; i++)
 	{
 		days_before_current += days_in_months[i];
 	}
 
-	days_before_current += Jan_1st_2023_days_before;
+	days_before_current += days_year_before;
+
 
 	uint8_t callendar_days = days_before_current % 7;
 
@@ -173,7 +208,30 @@ void callendar(uint8_t month_number)
 
 }
 
+/*
+uint8_t napr = 0;
 
+void napravlenie(void)
+{
+	if (year == 2024)
+	{
+		if (current_month == 11)
+		{
+			napr = 1;
+		}
+	}
+
+	if (napr == 1)
+	{
+		current_month--;
+	}
+	else
+	{
+		current_month++;
+	}
+}
+
+*/
 
 /* USER CODE END */
 
@@ -189,21 +247,74 @@ void main(void)
 	gioEnableNotification (gioPORTA, 7);
 
 	rtiEnableNotification(rtiNOTIFICATION_COMPARE0);
+	//rtiStartCounter(rtiCOUNTER_BLOCK0);
+	rtiREG1->CMP[0U].UDCPx = 0;
 
 	while(1)
 	{
+
+		if (bottom_flag == true)
+		{
+
+
+		}
+
 
 
 
 
 		if (send_next == true)
 		{
+			switch (current_month)
+					{
+						case 12:
+							current_month = 0;
+							year++;
+
+							if (year%4 == 1)
+							{
+								days_year_before++;
+							}
+							days_year_before++;
+							break;
+						case 255:
+							current_month = 11;
+							year--;
+
+							if (year%4 == 0)
+							{
+								days_year_before--;
+							}
+							days_year_before--;
+							break;
+
+					}
+
+			switch (days_year_before)
+			{
+				case 7:
+					days_year_before = 0;
+					break;
+				case 8:
+					days_year_before = 1;
+					break;
+				case 255:
+					days_year_before = 6;
+					break;
+				case 254:
+					days_year_before = 5;
+					break;
+			}
+
+
+
 			callendar(current_month);
 			delay(time);
 			sciSend(scilinREG, 3, "\n\r\0");
 			delay(time);
 			send_next = false;
 			delay(time);
+			//gioEnableNotification (gioPORTA, 7);
 		}
 
 
@@ -233,25 +344,26 @@ void main(void)
 void gioNotification(gioPORT_t *port, uint32  bit)
 {
 
-	gioDisableNotification (gioPORTA, 7);
-
+	//gioDisableNotification (gioPORTA, 7);
 	if (gioREG->POL == 1<<7)
 	{
 		rtiStartCounter(rtiCOUNTER_BLOCK0);
 		gioREG->POL = 0<<7;
-
 	}
 	else
 	{
 		rtiStopCounter(rtiCOUNTER_BLOCK0);
 		rtiResetCounter(rtiCOUNTER_BLOCK0);
 		gioREG->POL = 1<<7;
-		current_month++;
-		send_next = true;
+		//if (rtiGetCurrentTick(rtiCOMPARE0) < 1000000)
+		//{
+			current_month++;
+			send_next = true;
+		//}
 	}
-
 	delay(200000);
-	gioEnableNotification (gioPORTA, 7);
+
+	bottom_flag = true;
 
 
 
@@ -263,8 +375,10 @@ void rtiNotification(uint32 Notification)
 	gioToggleBit(gioPORTA, 2);
 	rtiStopCounter(rtiCOUNTER_BLOCK0);
 	rtiResetCounter(rtiCOUNTER_BLOCK0);
+	//napravlenie();
 	current_month--;
 	send_next = true;
+	gioREG->POL = 1<<7;
 }
 
 /* USER CODE END */
