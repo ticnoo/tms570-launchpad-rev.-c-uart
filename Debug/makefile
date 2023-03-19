@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS
+CG_TOOL_ROOT := C:/ti/ccs1220/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -16,6 +16,7 @@ ORDERED_OBJS += \
 "./source/gio.obj" \
 "./source/notification.obj" \
 "./source/pinmux.obj" \
+"./source/rti.obj" \
 "./source/sci.obj" \
 "./source/sys_core.obj" \
 "./source/sys_intvecs.obj" \
@@ -142,12 +143,6 @@ EXE_OUTPUTS += \
 EXE_OUTPUTS__QUOTED += \
 "570 uart.out" \
 
-BIN_OUTPUTS += \
-570\ uart.hex \
-
-BIN_OUTPUTS__QUOTED += \
-"570 uart.hex" \
-
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
@@ -157,22 +152,15 @@ all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 570\ uart.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: ARM Linker'
-	"C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/bin/armcl" -mv7R4 --code_state=32 -g --diag_warning=225 --diag_wrap=off --display_error_number --enum_type=packed --abi=eabi -z -m"570 uart.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/lib" -i"C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="570 uart_linkInfo.xml" --rom_model --be32 -o "570 uart.out" $(ORDERED_OBJS)
+	"C:/ti/ccs1220/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/bin/armcl" -mv7R4 --code_state=32 -g --diag_warning=225 --diag_wrap=off --display_error_number --enum_type=packed --abi=eabi -z -m"570 uart.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ti/ccs1220/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/lib" -i"C:/ti/ccs1220/ccs/tools/compiler/ti-cgt-arm_20.2.7.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="570 uart_linkInfo.xml" --rom_model --be32 -o "570 uart.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
-	@echo ' '
-
-570\ uart.hex: $(EXE_OUTPUTS)
-	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
-	@echo 'Invoking: ARM Hex Utility'
-	"C:/ccs10/ccs/tools/compiler/ti-cgt-arm_20.2.1.LTS/bin/armhex"  -o "570 uart.hex" $(EXE_OUTPUTS__QUOTED)
-	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "source\dabort.obj" "source\errata_SSWF021_45.obj" "source\esm.obj" "source\gio.obj" "source\notification.obj" "source\pinmux.obj" "source\sci.obj" "source\sys_core.obj" "source\sys_intvecs.obj" "source\sys_main.obj" "source\sys_mpu.obj" "source\sys_pcr.obj" "source\sys_phantom.obj" "source\sys_pmu.obj" "source\sys_selftest.obj" "source\sys_startup.obj" "source\sys_vim.obj" "source\system.obj" 
-	-$(RM) "source\errata_SSWF021_45.d" "source\esm.d" "source\gio.d" "source\notification.d" "source\pinmux.d" "source\sci.d" "source\sys_main.d" "source\sys_pcr.d" "source\sys_phantom.d" "source\sys_selftest.d" "source\sys_startup.d" "source\sys_vim.d" "source\system.d" 
+	-$(RM) $(EXE_OUTPUTS__QUOTED)
+	-$(RM) "source\dabort.obj" "source\errata_SSWF021_45.obj" "source\esm.obj" "source\gio.obj" "source\notification.obj" "source\pinmux.obj" "source\rti.obj" "source\sci.obj" "source\sys_core.obj" "source\sys_intvecs.obj" "source\sys_main.obj" "source\sys_mpu.obj" "source\sys_pcr.obj" "source\sys_phantom.obj" "source\sys_pmu.obj" "source\sys_selftest.obj" "source\sys_startup.obj" "source\sys_vim.obj" "source\system.obj" 
+	-$(RM) "source\errata_SSWF021_45.d" "source\esm.d" "source\gio.d" "source\notification.d" "source\pinmux.d" "source\rti.d" "source\sci.d" "source\sys_main.d" "source\sys_pcr.d" "source\sys_phantom.d" "source\sys_selftest.d" "source\sys_startup.d" "source\sys_vim.d" "source\system.d" 
 	-$(RM) "source\dabort.d" "source\sys_core.d" "source\sys_intvecs.d" "source\sys_mpu.d" "source\sys_pmu.d" 
 	-@echo 'Finished clean'
 	-@echo ' '

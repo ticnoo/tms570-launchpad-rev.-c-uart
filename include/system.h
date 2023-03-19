@@ -157,7 +157,7 @@ enum systemClockSource
 *
 *   RTI Clock frequency exported from HALCoGen GUI
 */
-#define RTI_FREQ     80.000F
+#define RTI_FREQ     2.000F
 
 /** @def AVCLK1_FREQ
 *   @brief AVCLK1 Domain frequency exported from HALCoGen GUI
@@ -230,7 +230,7 @@ enum systemClockSource
 *     - Flexray Pll
 */
 /*SAFETYMCUSW 79 S MR:19.4 <APPROVED> " Value comes from GUI drop down option " */
-#define SYS_PRE1 (SYS_PLL1)
+#define SYS_PRE1 (SYS_OSC)
 
 /** @def SYS_PRE2
 *   @brief Alias name for RTI2CLK pre clock source
@@ -319,8 +319,8 @@ typedef struct system_config_reg
 									
 #define SYS_RCLKSRC_CONFIGVALUE     ( (uint32)((uint32)1U << 24U)\
                                     | (uint32)((uint32)SYS_VCLK << 16U)\
-                                    | (uint32)((uint32)1U << 8U)\
-                                    | (uint32)((uint32)SYS_VCLK << 0U) )
+                                    | (uint32)((uint32)3U << 8U)\
+                                    | (uint32)((uint32)SYS_PRE1 << 0U) )
 									
 #define SYS_MSTGCR_CONFIGVALUE		0x00000105U
 

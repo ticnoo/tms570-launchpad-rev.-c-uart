@@ -52,6 +52,7 @@
 #include "sys_selftest.h"
 #include "gio.h"
 #include "sci.h"
+#include "rti.h"
 
 /* USER CODE BEGIN (0) */
 /* USER CODE END */
@@ -94,6 +95,16 @@ void memoryPort1TestFailNotification(uint32 groupSelect, uint32 dataSelect, uint
 }
 
 /* USER CODE BEGIN (8) */
+/* USER CODE END */
+#pragma WEAK(rtiNotification)
+void rtiNotification(uint32 notification)
+{
+/*  enter user code between the USER CODE BEGIN and USER CODE END. */
+/* USER CODE BEGIN (9) */
+/* USER CODE END */
+}
+
+/* USER CODE BEGIN (10) */
 /* USER CODE END */
 #pragma WEAK(gioNotification)
 void gioNotification(gioPORT_t *port, uint32 bit)
