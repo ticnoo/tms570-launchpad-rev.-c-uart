@@ -83,7 +83,8 @@ uint32_t time = 100000;
 
 uint8_t current_month = 2;
 
-
+bool next_month = true;
+bool send_next = false;
 
 
 void delay(uint32_t time)
@@ -97,42 +98,36 @@ void callendar(uint8_t month_number)
 	gioSetBit(gioPORTA, 2, 1);
 
 	uint8_t week_day = 0;
-
+	uint8_t i=0;
+	uint16_t days_before_current = 0;
 
 	char *pmonth = &month[month_number][0];
-	sciSend(scilinREG, 10, (uint8_t*) pmonth);
+
+	sciSend(scilinREG, 11, (uint8_t*) pmonth);
 	delay(time);
 
 	sciSend(scilinREG, 3, "\n\r\0");
 	delay(time);
 
 
-	uint8_t i=0;
-
-
-
-
-	uint16_t days_before_current = 0;
-
 	for (i = 0; i < month_number; i++)
 	{
 		days_before_current += days_in_months[i];
-
 	}
 
 	days_before_current += Jan_1st_2023_days_before;
 
 	uint8_t callendar_days = days_before_current % 7;
 
-
-
 	for (i = callendar_days; i != 0; i--)
 	{
 		char buffer[3] = "   ";
 		char * pbuffer = &buffer[0];
+
 		/* buffer[2] = ' ';
 		buffer[0] = (days_in_months[month_number]-i)/10 + '0';
 		buffer[1] = (days_in_months[month_number]-i)%10 + '0'; */
+
 		sciSend(scilinREG, 3, (uint8_t*) pbuffer);
 		delay(time);
 		week_day++;
@@ -140,17 +135,6 @@ void callendar(uint8_t month_number)
 
 
 // check days in month
-
-
-
-
-
-
-	//char *pmonth = &month[month_number][0];
-
-
-
-
 
 	for (i = 1; i<=days_in_months[month_number]; i++)
 	{
@@ -184,41 +168,9 @@ void callendar(uint8_t month_number)
 
 	}
 
-	//sciSend(scilinREG, 10, pamount_of_days);
-
-
-
 
 	gioSetBit(gioPORTA, 2, 0);
-	/*
 
-	sciSend(scilinREG, 10,(uint8_t*) pmonth);
-	delay(4000000);
-
-	while(sciIsTxReady(scilinREG) == 0);
-
-	sciSend(scilinREG, 3, "\n\r\0");
-	delay(4000000);
-	//sciSend(scilinREG, strchr(pmonth, "\0")-pmonth, pmonth);
-	while(sciIsTxReady(scilinREG) == 0);
-
-	char buffer[30] = "\t";
-	char *pbuf = &buffer[0];
-	sciSend(scilinREG, 20, (uint8_t *) pbuf);
-	delay(4000000);
-	sciSend(scilinREG, 3, "\n\r\0");
-	delay(4000000);
-	while(sciIsTxReady(scilinREG) == 0);
-
-	sciSend(scilinREG, 20, (uint8_t *) strcat(pbuf, pmonth));
-	while(sciIsTxReady(scilinREG) == 0);
-	delay(4000000);
-
-	sciSend(scilinREG, 3, "\n\r\0");
-	delay(4000000);
-	gioSetBit(gioPORTA, 2, 0);
-
-	*/
 }
 
 
@@ -234,16 +186,29 @@ void main(void)
 	sciInit();
 	rtiInit();
 	_enable_IRQ(); // разрешение прерывания
+	gioEnableNotification (gioPORTA, 7);
 
-	//rtiEnableNotification(rtiNOTIFICATION_COMPARE0);
-
-
-
-
+	rtiEnableNotification(rtiNOTIFICATION_COMPARE0);
 
 	while(1)
 	{
 
+
+
+
+		if (send_next == true)
+		{
+			callendar(current_month);
+			delay(time);
+			sciSend(scilinREG, 3, "\n\r\0");
+			delay(time);
+			send_next = false;
+			delay(time);
+		}
+
+
+
+/*
 		if (gioGetBit(gioPORTA, 7) == 1)
 		{
 			callendar(current_month);
@@ -253,21 +218,53 @@ void main(void)
 			delay(4000000);
 			current_month++;
 		}
-
+*/
 
 
 	}
 /* USER CODE END */
+
 
 }
 
 
 /* USER CODE BEGIN (4) */
 
+void gioNotification(gioPORT_t *port, uint32  bit)
+{
+
+	gioDisableNotification (gioPORTA, 7);
+
+	if (gioREG->POL == 1<<7)
+	{
+		rtiStartCounter(rtiCOUNTER_BLOCK0);
+		gioREG->POL = 0<<7;
+
+	}
+	else
+	{
+		rtiStopCounter(rtiCOUNTER_BLOCK0);
+		rtiResetCounter(rtiCOUNTER_BLOCK0);
+		gioREG->POL = 1<<7;
+		current_month++;
+		send_next = true;
+	}
+
+	delay(200000);
+	gioEnableNotification (gioPORTA, 7);
+
+
+
+}
+
 
 void rtiNotification(uint32 Notification)
 {
 	gioToggleBit(gioPORTA, 2);
+	rtiStopCounter(rtiCOUNTER_BLOCK0);
+	rtiResetCounter(rtiCOUNTER_BLOCK0);
+	current_month--;
+	send_next = true;
 }
 
 /* USER CODE END */
