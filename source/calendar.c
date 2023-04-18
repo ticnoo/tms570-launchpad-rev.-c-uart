@@ -1,5 +1,9 @@
+/** @file calendar.c
+ * 	@brief Calendar Implementation File
+ * 	@date 19-Apr-2023
+ */
+
 #include "calendar.h"
-//#include <string.h>
 
 static const char *months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
 static uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -13,12 +17,14 @@ const char week_days[20] = "Mo Tu We Th Fr Sa Su";
  * 	This function look if the day count is not between 1-7 days in week and change it
  */
 
-static void look_for_7_days (uint8_t week_day)
+uint8_t look_for_7_days (uint8_t week_day)
 {
 	if (week_day == 7) week_day = 0;
 	if (week_day == 8) week_day = 1;
 	if (week_day == 255) week_day = 6;
 	if (week_day == 254) week_day = 5;
+	return week_day;
+
 }
 
 /** @fn _Bool look_for_leap_year (uint16_t year_check)
@@ -84,14 +90,12 @@ uint8_t get_days_before_current_year (uint8_t days_before_current_year, uint16_t
 static uint8_t get_days_before_current_month_1st (uint8_t days_before_year, uint8_t month_set)
 {
 	uint16_t days_before_current = 0;
-
 	for (uint8_t i = 0; i <= month_set; i++)
 	{
 		days_before_current += days_in_months[i];
 	}
 	days_before_current += days_before_year;
 	days_before_current %= 7;
-
 	return days_before_current;
 }
 
@@ -105,7 +109,7 @@ static uint8_t get_days_before_current_month_1st (uint8_t days_before_year, uint
  * 	Initialize calendar for set structure for the first time, input month and year to get a full struct with the data
  */
 
-void callendar_init (struct callendar* c, uint8_t current_month, uint16_t current_year)
+void calendar_init (struct calendar* c, uint8_t current_month, uint16_t current_year)
 {
 	/** Input year and feb days in struct */
 	c->year = current_year;
@@ -118,9 +122,7 @@ void callendar_init (struct callendar* c, uint8_t current_month, uint16_t curren
 	c->days_before_set_month_1st = get_days_before_current_month_1st(c->days_before_set_year, current_month);
 }
 
-// change month
-
-/** @fn void set_month (struct callendar* c, uint8_t month_set, uint16_t year_set)
+/** @fn void set_month (struct calendar* c, uint8_t month_set, uint16_t year_set)
  * 	@brief change month
  * 	@param[in] Pointer to struct of you calendar
  * 	@param[in] Number of month to set
@@ -129,7 +131,7 @@ void callendar_init (struct callendar* c, uint8_t current_month, uint16_t curren
  * 	This function change month in youre structure
  */
 
-void set_month (struct callendar* c, uint8_t month_set, uint16_t year_set)
+void set_month (struct calendar* c, uint8_t month_set, uint16_t year_set)
 {
 	c->days_before_set_year = get_days_before_current_year(c->days_before_set_year, c->year, year_set);
 	c->year = year_set;
@@ -138,7 +140,54 @@ void set_month (struct callendar* c, uint8_t month_set, uint16_t year_set)
 	c->days_before_set_month_1st = get_days_before_current_month_1st(c->days_before_set_year, month_set);
 }
 
+/** @fn void send_set_month(sciBASE_t *sci, struct calendar* c)
+ * 	@brief Send month in UART 
+ *  @param[in] Pointer to SCI base
+ * 	@param[in] Pointer to calendar struct
+ * 
+ * 	Send month in calendar struct to UART using standart HALCoGen functions
+ */
 
+void send_set_month(sciBASE_t *sci, struct calendar* c)
+{
+	/** send  month */
+	sciSend(sci, 1, "\t");
+	sciSend(sci, sizeof(c->month), c->month);
+	sciSend(sci, 1, " ");
+	/** send year */
+	char buff[4];
+	buff[0] = c->year / 1000 + '0';
+	buff[1] = (c->year / 100) % 10 + '0';
+	buff[2] = (c->year / 10) % 10 + '0';
+	buff[3] = c->year % 10 + '0';
+	sciSend(sci, 4, buff);
+	sciSend(sci, 2, "\n\r");
+	/** send days of the week 	*/
+	sciSend(sci, 20, week_days);
+	/** count days before 1st day of month */
+	uint8_t week_day = 0;
+	for (uint8_t i = c->days_before_set_month_1st; i != 0; i--)
+	{
+		sciSend(sci, 3, "   ");
+		week_day++;
+	}
+	/** send every date in line (max 7) */
+	buff[3] = '\0';
+	for (uint8_t i = 0; i < c->days_in_month; i++)
+	{
+		buff[0] = ' ';
+		if (i > 10) buff[1] = i/10 + '0';
+		else buff [1] = ' ';
+		buff [2] = i%10 + '0';
+		sciSend(sci, 3, buff);
+		week_day++;
+		if (week_day == 7)
+		{
+			week_day = look_for_7_days(week_day);
+			sciSend(sci, 2, "\n\r");
+		}
+	}
+}
 
 
 

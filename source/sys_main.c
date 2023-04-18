@@ -54,10 +54,13 @@
 #include "system.h"
 #include "gio.h"
 #include "sci.h"
-#include "string.h"
 #include "rti.h"
+
 #include "calendar.h"
 
+#define UART scilinREG
+#define MONTH 3
+#define YEAR 2023
 
 
 /* USER CODE END */
@@ -73,6 +76,7 @@
 /* USER CODE BEGIN (2) */
 
 /*
+
 char month[12][11] = {"January ", "February ", "March ", "April ", "May ", "June ", "July ", "August ", "September ", "October ", "November ", "December "};
 char days[23] = "Mo Tu We Th Fr Sa Su\n\r\0";
 char *pdays = &days[0];
@@ -82,25 +86,31 @@ uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 uint8_t days_year_before = 6; // дней с прошлого года, которые надо вычесть (если 1 января - не понедельник), в 2023 - 6
 uint8_t current_month = 2; // текущий месяц
 uint16_t year = 2023; // текущий год
+
 */
 
-bool send_next = false; // флаг для считывания команды кнопки
-struct callendar my_callendar;
+bool send_next = false; 		// buttom send flag
+struct calendar my_calendar;	// init calendar struct
+uint8_t current_month = MONTH;	// set current month 
+uint16_t current_year = YEAR;	// set current year
 
-uint8_t current_month;
+uint32_t time = 100000; 		// time for programm delay
 
-uint32_t time = 100000; // перменная для програмной задержки
-
-void delay(uint32_t time) // задержка
+/** @fn void delay(uint32_t time)
+ *  @brief program block delay 
+*/
+void delay(uint32_t time) 
 {
 	while(time>0) time--;
 }
 
+/* я хз, надо проверить, заведется ли в том файле сперва, а то я не уверен
+
 void send_set_month(sciBASE_t *sci, struct callendar* c)
 {
-	sciSend(sci, 1, '\t');
-	sciSend(sci, sizeof(c->month), c->month);
-	sciSend(sci, 1, ' ');
+	sciSend(sci, 1, "\t");
+	sciSend(sci, sizeof(c->month), (uint8_t*) c->month);
+	sciSend(sci, 1, " ");
 	sciSend(sci, 2, "\n\r");
 
 	char buff[4];
@@ -114,52 +124,88 @@ void send_set_month(sciBASE_t *sci, struct callendar* c)
 
 	sciSend(sci, 20, week_days);
 
-	for (uint8_t i; )
+	uint8_t week_day = 0;
+
+	for (uint8_t i = c->days_before_set_month_1st; i != 0; i--)
+	{
+		sciSend(sci, 3, "   ");
+		week_day++;
+	}
+
+	buff[3] = '\0';
+
+	for (uint8_t i = 0; i < c->days_in_month; i++)
+	{
+		buff[0] = ' ';
+		if (i > 10) buff[1] = i/10 + '0';
+		else buff [1] = ' ';
+		buff [2] = i%10 + '0';
+
+
+		sciSend(sci, 3, buff);
+		week_day++;
+		if (week_day == 7)
+		{
+			week_day = look_for_7_days(week_day);
+			sciSend(sci, 2, "\n\r");
+		}
+	}
+
 }
 
-
+*/
 
 
 /* USER CODE END */
 
-void main(void)
+int main(void)
 {
 /* USER CODE BEGIN (3) */
 
+	/** init */
 	systemInit();
 	gioInit();
 	sciInit();
 	rtiInit();
-	_enable_IRQ(); // разрешение прерывания
-	gioEnableNotification (gioPORTA, 7); // включение прерывания кнопки
-
-	rtiEnableNotification(rtiNOTIFICATION_COMPARE0); // вклчюение прерывания таймера
-	//rtiStartCounter(rtiCOUNTER_BLOCK0); // тест, что б засылал без кнопок
-	rtiREG1->CMP[0U].UDCPx = 0; // что бы компаратор не добавлял себе значение каждый раз при срабатывании, т.к. rtiReset не сбрасывает этот параметр
-
-
-
-
-	callendar_init(&my_callendar, 3, 2023);
-
-
-
+	_enable_IRQ();
+	gioEnableNotification (gioPORTA, 7); 				// buttom itr
+	rtiEnableNotification(rtiNOTIFICATION_COMPARE0); 	// timer itr
+	//rtiStartCounter(rtiCOUNTER_BLOCK0); // test, sending months with no pressing the buttom
+	rtiREG1->CMP[0U].UDCPx = 0; // rtiReset is not reset the up register, ITR will increas all the time, if it is not 0
+	calendar_init(&my_calendar, 3, 2023);
 
 	while(1)
 	{
+		/** send flag check */
+		if (send_next)
+		{
+			if (current_month == 12)	// next year
+			{
+				current_year++;
+				current_month = 0;
+			}
+			if (current_month == 255)	// prev year
+			{
+				current_year--;
+				current_month = 11;
+			}
 
-
+			set_month(&my_calendar, current_month, current_year); 	// change the month 
+			send_set_month(UART, &my_calendar);				// send it 
+		}
 
 	}
 /* USER CODE END */
 
-
+    return 0;
 }
 
 
 /* USER CODE BEGIN (4) */
 
-/*
+/** @fn void gioNotification(gioPORT_t *port, uint32  bit) 
+ * 	@brief Buttom interrupt notification
+ *  
  * При нажатии кнопки срабатывает прерывание, которое запускает таймера для отслеживания времени удержания,
  * режим срабатывания прерывания кнопки переключается на режим срабатывания по спаду (то есть, когда отожмем кнопку).
  * Если держать кнопку больше времени срабатывания таймера (1 с.), срабатывает прерывание таймера,
@@ -169,34 +215,43 @@ void main(void)
  * режим прерывания кнопки переключается обратно на нарастающий и идет команда заслать следующий месяц.
  */
 
-void gioNotification(gioPORT_t *port, uint32  bit) // прерывание сработало
+void gioNotification(gioPORT_t *port, uint32  bit) 
 {
-
-	//gioDisableNotification (gioPORTA, 7);
-	if (gioREG->POL == 1<<7) // если сработало на наростании
+	/** checking is buttom ITR starts from falling or rising edge (release or press) */
+	//  if (gioREG->POL == 1<<7) // rising
+	if (gioREG->POL >> 7 && 1U)		// rising
 	{
-		rtiStartCounter(rtiCOUNTER_BLOCK0); // включаем таймер для остлеживания, сколько времени нажата кнопка
-		gioREG->POL = 0<<7; // прерывание на спад фронта
+	/** starts timer to count time after press and change ITR to falling edge (release) */
+		rtiStartCounter(rtiCOUNTER_BLOCK0);
+		gioREG->POL = 0<<7; 
 	}
-	else // если сработало на спаде
+	else // falling
 	{
-		rtiStopCounter(rtiCOUNTER_BLOCK0); // стоп таймера
-		rtiResetCounter(rtiCOUNTER_BLOCK0); // сброс текущего тика
-		gioREG->POL = 1<<7; // прерывание по наростанию
-		current_month++; // + месяц
-		send_next = true; // флаг отправки
+	/** timer reset, ITR to rising edge, increment of the month, updating the send flag */
+		rtiStopCounter(rtiCOUNTER_BLOCK0); 
+		rtiResetCounter(rtiCOUNTER_BLOCK0); 
+		gioREG->POL = 1<<7; 
+		current_month++; 
+		send_next = true; 
 	}
 
 }
 
+/** @fn void rtiNotification(uint32 Notification)
+ * 	@brief Timer interrupt notification
+ * 
+ * interrupt after 500 ms, stop and reset the timer, decrement of the month, updating the send flag
+ * 
+*/
 
-void rtiNotification(uint32 Notification) // сработало прерывание компаратора
+void rtiNotification(uint32 Notification) 
 {
-	rtiStopCounter(rtiCOUNTER_BLOCK0); // остановка таймера
-	rtiResetCounter(rtiCOUNTER_BLOCK0); // сброс
-	current_month--; // - месяц
-	send_next = true; // флаг отправки
-	gioREG->POL = 1<<7; // переключение на срабатывание прерывания кнопки по наростанию
+	/** Timer reset */
+	rtiStopCounter(rtiCOUNTER_BLOCK0); 
+	rtiResetCounter(rtiCOUNTER_BLOCK0); 
+	current_month--; 
+	send_next = true; 
+	gioREG->POL = 1<<7; 
 }
 
 /* USER CODE END */
