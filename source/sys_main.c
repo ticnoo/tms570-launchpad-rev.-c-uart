@@ -56,7 +56,7 @@
 #include "sci.h"
 #include "string.h"
 #include "rti.h"
-#include "callendar.h"
+#include "calendar.h"
 
 
 
@@ -85,6 +85,8 @@ uint16_t year = 2023; // текущий год
 */
 
 bool send_next = false; // флаг для считывания команды кнопки
+struct callendar my_callendar;
+
 uint8_t current_month;
 
 uint32_t time = 100000; // перменная для програмной задержки
@@ -92,6 +94,27 @@ uint32_t time = 100000; // перменная для програмной зад
 void delay(uint32_t time) // задержка
 {
 	while(time>0) time--;
+}
+
+void send_set_month(sciBASE_t *sci, struct callendar* c)
+{
+	sciSend(sci, 1, '\t');
+	sciSend(sci, sizeof(c->month), c->month);
+	sciSend(sci, 1, ' ');
+	sciSend(sci, 2, "\n\r");
+
+	char buff[4];
+
+	buff[0] = c->year / 1000 + '0';
+	buff[1] = (c->year / 100) % 10 + '0';
+	buff[2] = (c->year / 10) % 10 + '0';
+	buff[3] = c->year % 10 + '0';
+
+	sciSend(sci, 4, buff);
+
+	sciSend(sci, 20, week_days);
+
+	for (uint8_t i; )
 }
 
 
@@ -114,13 +137,17 @@ void main(void)
 	//rtiStartCounter(rtiCOUNTER_BLOCK0); // тест, что б засылал без кнопок
 	rtiREG1->CMP[0U].UDCPx = 0; // что бы компаратор не добавлял себе значение каждый раз при срабатывании, т.к. rtiReset не сбрасывает этот параметр
 
-	struct callendar my_callendar;
 
 
-	callendar_init(&my_callendar, 3, 2023, 6);
+
+	callendar_init(&my_callendar, 3, 2023);
+
+
+
 
 	while(1)
 	{
+
 
 
 	}
