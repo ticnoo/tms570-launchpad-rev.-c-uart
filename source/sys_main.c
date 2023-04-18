@@ -56,6 +56,7 @@
 #include "sci.h"
 #include "string.h"
 #include "rti.h"
+#include "callendar.h"
 
 
 
@@ -71,8 +72,9 @@
 
 /* USER CODE BEGIN (2) */
 
+/*
 char month[12][11] = {"January ", "February ", "March ", "April ", "May ", "June ", "July ", "August ", "September ", "October ", "November ", "December "};
-char days[23] = "Su Mo Tu We Th Fr Sa\n\r\0";
+char days[23] = "Mo Tu We Th Fr Sa Su\n\r\0";
 char *pdays = &days[0];
 
 uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -80,8 +82,10 @@ uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 uint8_t days_year_before = 6; // дней с прошлого года, которые надо вычесть (если 1 января - не понедельник), в 2023 - 6
 uint8_t current_month = 2; // текущий месяц
 uint16_t year = 2023; // текущий год
+*/
 
 bool send_next = false; // флаг для считывания команды кнопки
+uint8_t current_month;
 
 uint32_t time = 100000; // перменная для програмной задержки
 
@@ -91,105 +95,7 @@ void delay(uint32_t time) // задержка
 }
 
 
-void callendar(uint8_t month_number)
-{
-	gioSetBit(gioPORTA, 2, 1); // просто индикация работы функции
 
-	uint8_t week_day = 0; // номер дня недели
-	uint8_t i=0; // для for
-	uint16_t days_before_current = 0; // дней перед первым числом месяца
-
-	char *pmonth = &month[month_number][0]; // берем выбранный месяц
-
-
-	char year_send[5]; // буфер для преобразования int года в char год
-	char *pyear_send = &year_send[0];
-
-	year_send[0] = year/1000 + '0'; // вычленяем по цифре
-	year_send[1] = (year/100)%10 + '0';
-	year_send[2] = (year/10)%100 + '0';
-	year_send[3] = year%10 + '0';
-	year_send[4] = '\0';
-
-	char month_year[20]; // буфер для отправки месяц + год
-	char *pmonth_year = &month_year[0];
-
-	sciSend(scilinREG, 20, (uint8_t*) strcat(strcat(pmonth_year, pmonth),pyear_send)); // объединение месяц + год и отправка
-	delay(time); // задержка что бы уарт отработал, потому что он в прерывающем режиме и если начать новую отправку он стопнет предыдущую
-
-	memset(pmonth_year, '\0', 20); // очистка буфера
-
-	sciSend(scilinREG, 3, "\n\r\0"); // сдвиг каретки терминала
-	delay(time);
-
-	sciSend(scilinREG, 23, (uint8_t*) pdays); // дни недели
-	delay(time+time);
-
-	if (year%4 == 0) // проверяем високосность
-	{
-		days_in_months[1] = 29; // февраль 28 или 29 дней
-	}
-	else
-	{
-		days_in_months[1] = 28;
-	}
-
-
-	for (i = 0; i < month_number; i++) // высчитывает, сколько будет дней до 1 числа текущего месяца
-	{
-		days_before_current += days_in_months[i];
-	}
-
-	days_before_current += days_year_before; //добавляем недостающие дни с прошлого года
-
-	uint8_t callendar_days = days_before_current % 7; // из этого числа узнаем остаток относительно недели
-
-	for (i = callendar_days; i != 0; i--) // засылаем пустые места вместо даты
-	{
-		char buf[4] = "   \0";
-		char * pbuf = &buf[0];
-
-		sciSend(scilinREG, 3, (uint8_t*) pbuf);
-		delay(time);
-		week_day++;
-	}
-
-// days in month
-
-	for (i = 1; i<=days_in_months[month_number]; i++) // засылаем даты
-	{
-		char buf[4];
-		char * pbuf = &buf[0]; // буфер для каждого числа
-		buf[2] = ' '; // 3 символ всегда пробел
-		buf[3] = '\0';
-
-		if (i>=10) // если дата - двузначное число, первым будет пробел
-		{
-			buf[0] = i/10 + '0';
-			buf[1] = i%10 + '0';
-		}
-		else
-		{
-			buf[0] = ' ';
-			buf[1] = i + '0';
-		}
-
-		sciSend(scilinREG, 3, (uint8_t*) pbuf); // засылаем дату
-		delay(time);
-
-		week_day++; // считаем дни недели
-
-		if (week_day > 6) // неделя закончилась - двигаем каретку, обнуляем число
-		{
-			sciSend(scilinREG, 3, "\n\r\0");
-			delay(time);
-			week_day = 0;
-
-		}
-	}
-
-	gioSetBit(gioPORTA, 2, 0);
-}
 
 /* USER CODE END */
 
@@ -208,62 +114,15 @@ void main(void)
 	//rtiStartCounter(rtiCOUNTER_BLOCK0); // тест, что б засылал без кнопок
 	rtiREG1->CMP[0U].UDCPx = 0; // что бы компаратор не добавлял себе значение каждый раз при срабатывании, т.к. rtiReset не сбрасывает этот параметр
 
+	struct callendar my_callendar;
+
+
+	callendar_init(&my_callendar, 3, 2023, 6);
+
 	while(1)
 	{
 
-		if (send_next == true) // кнопка была нажата
-		{
-			switch (current_month) // переход на следующий/предыдущий год
-					{
-						case 12: // 12 - следующиее после 11
-							current_month = 0;
-							year++;
 
-							if (year%4 == 1)	// если идем в будущее - в самой високосный год лишний день в
-												// феврале, значит добавить к счетчику на следующий год
-
-							{
-								days_year_before++; // если високосный - сдвигается на 2 дня, если нет, 1 день
-							}
-							days_year_before++;
-							break;
-						case 255: // предыдущее 0
-							current_month = 11;
-							year--;
-
-							if (year%4 == 0)	// если в прошлое убавляем лишний день именно в сам високосный год
-							{
-								days_year_before--;
-							}
-							days_year_before--;
-							break;
-
-					}
-
-			switch (days_year_before) // в неделе 7 дней, обнуление если больше 7ми и наоборот, если меньше
-			{
-				case 7:
-					days_year_before = 0;
-					break;
-				case 8: 	// 8 т.к. в високосный год к 6ти может пребавить 2, следовательно будет сдвиг на 1, а не 0
-					days_year_before = 1;
-					break;
-				case 255:
-					days_year_before = 6;
-					break;
-				case 254:	// то же самое с високосным годом
-					days_year_before = 5;
-					break;
-			}
-
-			callendar(current_month);
-			delay(time);
-			sciSend(scilinREG, 3, "\n\r\0"); // сдвиг каретки после отправки месяца
-			delay(time);
-			send_next = false; // сброс флага
-			delay(time);
-			//gioEnableNotification (gioPORTA, 7);
-		}
 	}
 /* USER CODE END */
 
