@@ -58,9 +58,6 @@
 
 #include "calendar.h"
 
-#include "string.h"
-
-
 #define UART scilinREG
 #define MONTH 3
 #define YEAR 2023
@@ -78,7 +75,7 @@
 
 /* USER CODE BEGIN (2) */
 
-bool send_next = true; 		// buttom send flag
+bool send_next = true; 			// buttom send flag
 struct calendar my_calendar;	// init calendar struct
 uint8_t current_month = MONTH;	// set current month 
 uint16_t current_year = YEAR;	// set current year
@@ -94,67 +91,10 @@ void delay(uint32_t time)
 	while(time>0) time--;
 }
 
-/*
-static void send_month_via(uint8_t lengh, uint8_t* data);
+void send_month_via(uint8_t lengh, const void* data)
 {
-	sciSend(UART, lengh, data);
+	sciSend(UART, lengh, (uint8_t*) data);
 }
-*/
-
-void send_set_month(sciBASE_t *sci, struct calendar* c)
-{
-	sciSend(sci, 1, "\t");
-	sciSend(sci, strlen(c->month), (uint8_t*) c->month);
-	sciSend(sci, 1, " ");
-
-	char buff[4];
-
-	buff[0] = c->year / 1000 + '0';
-	buff[1] = (c->year / 100) % 10 + '0';
-	buff[2] = (c->year / 10) % 10 + '0';
-	buff[3] = c->year % 10 + '0';
-
-	sciSend(sci, 4, buff);
-
-	sciSend(sci, 2, "\n\r");
-
-	sciSend(sci, 21, week_days);
-
-	sciSend(sci, 2, "\n\r");
-
-	uint8_t week_day = 0;
-
-	for (uint8_t i = c->days_before_set_month_1st; i != 0; i--)
-	{
-		sciSend(sci, 3, "   ");
-		week_day++;
-	}
-
-	buff[3] = '\0';
-
-	for (uint8_t i = 1; i <= c->days_in_month; i++)
-	{
-		buff[0] = ' ';
-		if (i > 10) buff[1] = i/10 + '0';
-		else buff [1] = ' ';
-		buff [2] = i%10 + '0';
-
-
-		sciSend(sci, 3, buff);
-		week_day++;
-		if (week_day == 7)
-		{
-			week_day = look_for_7_days(week_day);
-			sciSend(sci, 2, "\n\r");
-		}
-	}
-
-	if (week_day != 0) sciSend(sci, 2, "\n\r");
-
-}
-
-
-
 
 /* USER CODE END */
 
@@ -170,9 +110,10 @@ int main(void)
 	_enable_IRQ();
 	gioEnableNotification (gioPORTA, 7); 				// buttom itr
 	rtiEnableNotification(rtiNOTIFICATION_COMPARE0); 	// timer itr
-	//rtiStartCounter(rtiCOUNTER_BLOCK0); 				// test, sending months with no pressing the buttom
 	rtiREG1->CMP[0U].UDCPx = 0; 						// rtiReset is not reset the up register, ITR will increas all the time, if it is not 0
 	calendar_init(&my_calendar, MONTH, YEAR);
+
+	//rtiStartCounter(rtiCOUNTER_BLOCK0); 				// test, sending months with no button press
 
 	while(1)
 	{
@@ -191,8 +132,10 @@ int main(void)
 				current_month = 11;
 			}
 
+			gioSetBit(gioPORTA, 2, 1);
 			set_month(&my_calendar, current_month, current_year); 	// change the month
-			send_set_month(UART, &my_calendar);						// send it
+			send_set_month(&my_calendar);							// send it
+			gioSetBit(gioPORTA, 2, 0);
 		}
 
 	}
@@ -218,19 +161,18 @@ int main(void)
 void gioNotification(gioPORT_t *port, uint32  bit) 
 {
 	/** checking is buttom ITR starts from falling or rising edge (release or press) */
-	//  if (gioREG->POL == 1<<7) // rising
-	if (gioREG->POL >> 7 && 1U)		// rising
+	if ((gioREG->POL >> 7) && 1U)			// rising
 	{
 	/** starts timer to count time after press and change ITR to falling edge (release) */
 		rtiStartCounter(rtiCOUNTER_BLOCK0);
-		gioREG->POL = 0<<7; 
+		gioREG->POL &= ~(1U<<7);
 	}
-	else // falling
+	else									// falling
 	{
 	/** timer reset, ITR to rising edge, increment of the month, updating the send flag */
 		rtiStopCounter(rtiCOUNTER_BLOCK0); 
 		rtiResetCounter(rtiCOUNTER_BLOCK0); 
-		gioREG->POL = 1<<7; 
+		gioREG->POL |= 1<<7;
 		current_month++; 
 		send_next = true; 
 	}
@@ -240,7 +182,7 @@ void gioNotification(gioPORT_t *port, uint32  bit)
 /** @fn void rtiNotification(uint32 Notification)
  * 	@brief Timer interrupt notification
  * 
- * interrupt after 500 ms, stop and reset the timer, decrement of the month, updating the send flag
+ * interrupt after *set time* ms, stop and reset the timer, decrement of the month, updating the send flag
  * 
 */
 
@@ -251,7 +193,7 @@ void rtiNotification(uint32 Notification)
 	rtiResetCounter(rtiCOUNTER_BLOCK0); 
 	current_month--; 
 	send_next = true; 
-	gioREG->POL = 1<<7; 
+	gioREG->POL |= 1<<7;
 }
 
 /* USER CODE END */

@@ -1,6 +1,9 @@
 /** @file calendar.c
  * 	@brief Calendar Implementation File
  * 	@date 19-Apr-2023
+ * 	@version 1.0
+ *
+ * 	now you can send you month via uart
  */
 
 #include "calendar.h"
@@ -17,14 +20,11 @@ const char week_days[21] = " Mo Tu We Th Fr Sa Su";
  * 	This function look if the day count is not between 1-7 days in week and change it
  */
 
-uint8_t look_for_7_days (uint8_t week_day)
+static int8_t look_for_7_days (int8_t input_week_day)
 {
-	if (week_day == 7) week_day = 0;
-	if (week_day == 8) week_day = 1;
-	if (week_day == 255) week_day = 6;
-	if (week_day == 254) week_day = 5;
-	return week_day;
-
+	if (input_week_day > 6) input_week_day = input_week_day % 7;
+	if (input_week_day < 0) input_week_day = (input_week_day + 7) % 7;
+	return input_week_day;
 }
 
 /** @fn _Bool look_for_leap_year (uint16_t year_check)
@@ -38,7 +38,7 @@ uint8_t look_for_7_days (uint8_t week_day)
  * 	Input year to check, output true/false
  */
 
-bool look_for_leap_year (uint16_t year_check)
+static bool look_for_leap_year (uint16_t year_check)
 {
 	/** look for leap year and change Fb days if it is */
 	if ((year_check % 400 == 0) || (year_check % 4 == 0 && year_check % 100 != 0)) return true;
@@ -55,10 +55,10 @@ bool look_for_leap_year (uint16_t year_check)
  * 	This function count days before first day in set year to find what day does the year start
  */
 
-uint8_t get_days_before_current_year (uint8_t days_before_current_year, uint16_t prev_year, uint16_t year_set)
+static uint8_t get_days_before_current_year (uint8_t days_before_current_year, uint16_t prev_year, uint16_t year_set)
 {
 	/** +1 day every year shift, +2 every leap year */
-	uint8_t days_before = days_before_current_year;
+	int8_t days_before = days_before_current_year;
 	for (uint16_t i = year_set; prev_year != i;)
 	{
 		if (prev_year > year_set)
@@ -141,27 +141,33 @@ void calendar_init (struct calendar* c, uint8_t current_month, uint16_t current_
 
 void set_month (struct calendar* c, uint8_t month_set, uint16_t year_set)
 {
-
-
+	bool leap_year = look_for_leap_year(year_set);
 	c->days_before_set_year = get_days_before_current_year(c->days_before_set_year, c->year, year_set);
 	c->year = year_set;
 
-	if(look_for_leap_year(c->year)) days_in_months[1] = 29;
-		else days_in_months[1] = 28;
+	if(leap_year) days_in_months[1] = 29;
+	else days_in_months[1] = 28;
 
 	c->month = months[month_set];
-
 	c->days_before_set_month_1st = get_days_before_current_month_1st(c->days_before_set_year, month_set);
 
-	if(look_for_leap_year(c->year))
+	if(leap_year)
 	{
-		//days_in_months[1] = 29;
 		c->days_before_set_month_1st--;
 		c->days_before_set_month_1st = look_for_7_days(c->days_before_set_month_1st);
 	}
-	//else days_in_months[1] = 28;
 	c->days_in_month = days_in_months[month_set];
+}
 
+/** @fn static void send_nr()
+ * 	@brief send \n\r
+ *
+ * 	Send to terminal \n\r to put cursor in position 0 on the next line
+ */
+
+static void send_nr()
+{
+	send_month_via(2, "\n\r");
 }
 
 /** @fn void send_set_month(sciBASE_t *sci, struct calendar* c)
@@ -172,7 +178,53 @@ void set_month (struct calendar* c, uint8_t month_set, uint16_t year_set)
  * 	Send month in calendar struct to UART using standart HALCoGen functions
  */
 
+void send_set_month(struct calendar* c)
+{
+	for (uint8_t i = 0; i < 10-(strlen(c->month)/2+2); i++)
+		send_month_via(1, " ");
 
+	send_month_via(strlen(c->month), c->month);
+	send_month_via(1, " ");
+
+	char buff[4];
+	buff[0] = c->year / 1000 + '0';
+	buff[1] = (c->year / 100) % 10 + '0';
+	buff[2] = (c->year / 10) % 10 + '0';
+	buff[3] = c->year % 10 + '0';
+	send_month_via(4, buff);
+
+	send_nr();
+	send_month_via(21, week_days);
+	send_nr();
+
+	int8_t week_day = 0;
+	for (uint8_t i = c->days_before_set_month_1st; i != 0; i--)
+	{
+		send_month_via(3, "   ");
+		week_day++;
+	}
+
+	buff[3] = '\0';
+	for (uint8_t i = 1; i <= c->days_in_month; i++)
+	{
+		buff[0] = ' ';
+		if (i > 10) buff[1] = i/10 + '0';
+		else buff [1] = ' ';
+		buff [2] = i%10 + '0';
+
+		send_month_via(3, buff);
+
+		week_day++;
+		if (week_day == 7)
+		{
+			week_day = look_for_7_days(week_day);
+			send_nr();
+
+		}
+	}
+
+	if (week_day != 0) send_nr();
+}
 
 
 
