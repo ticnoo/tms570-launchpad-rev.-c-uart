@@ -58,6 +58,9 @@
 
 #include "calendar.h"
 
+#include "string.h"
+
+
 #define UART scilinREG
 #define MONTH 3
 #define YEAR 2023
@@ -75,43 +78,34 @@
 
 /* USER CODE BEGIN (2) */
 
-/*
-
-char month[12][11] = {"January ", "February ", "March ", "April ", "May ", "June ", "July ", "August ", "September ", "October ", "November ", "December "};
-char days[23] = "Mo Tu We Th Fr Sa Su\n\r\0";
-char *pdays = &days[0];
-
-uint8_t days_in_months[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-uint8_t days_year_before = 6; // дней с прошлого года, которые надо вычесть (если 1 января - не понедельник), в 2023 - 6
-uint8_t current_month = 2; // текущий месяц
-uint16_t year = 2023; // текущий год
-
-*/
-
-bool send_next = false; 		// buttom send flag
+bool send_next = true; 		// buttom send flag
 struct calendar my_calendar;	// init calendar struct
 uint8_t current_month = MONTH;	// set current month 
 uint16_t current_year = YEAR;	// set current year
 
-uint32_t time = 100000; 		// time for programm delay
+uint32_t time = 10000000; 		// time for programm delay
 
 /** @fn void delay(uint32_t time)
  *  @brief program block delay 
 */
+
 void delay(uint32_t time) 
 {
 	while(time>0) time--;
 }
 
-/* я хз, надо проверить, заведется ли в том файле сперва, а то я не уверен
+/*
+static void send_month_via(uint8_t lengh, uint8_t* data);
+{
+	sciSend(UART, lengh, data);
+}
+*/
 
-void send_set_month(sciBASE_t *sci, struct callendar* c)
+void send_set_month(sciBASE_t *sci, struct calendar* c)
 {
 	sciSend(sci, 1, "\t");
-	sciSend(sci, sizeof(c->month), (uint8_t*) c->month);
+	sciSend(sci, strlen(c->month), (uint8_t*) c->month);
 	sciSend(sci, 1, " ");
-	sciSend(sci, 2, "\n\r");
 
 	char buff[4];
 
@@ -122,7 +116,11 @@ void send_set_month(sciBASE_t *sci, struct callendar* c)
 
 	sciSend(sci, 4, buff);
 
-	sciSend(sci, 20, week_days);
+	sciSend(sci, 2, "\n\r");
+
+	sciSend(sci, 21, week_days);
+
+	sciSend(sci, 2, "\n\r");
 
 	uint8_t week_day = 0;
 
@@ -134,7 +132,7 @@ void send_set_month(sciBASE_t *sci, struct callendar* c)
 
 	buff[3] = '\0';
 
-	for (uint8_t i = 0; i < c->days_in_month; i++)
+	for (uint8_t i = 1; i <= c->days_in_month; i++)
 	{
 		buff[0] = ' ';
 		if (i > 10) buff[1] = i/10 + '0';
@@ -151,9 +149,11 @@ void send_set_month(sciBASE_t *sci, struct callendar* c)
 		}
 	}
 
+	if (week_day != 0) sciSend(sci, 2, "\n\r");
+
 }
 
-*/
+
 
 
 /* USER CODE END */
@@ -170,15 +170,16 @@ int main(void)
 	_enable_IRQ();
 	gioEnableNotification (gioPORTA, 7); 				// buttom itr
 	rtiEnableNotification(rtiNOTIFICATION_COMPARE0); 	// timer itr
-	//rtiStartCounter(rtiCOUNTER_BLOCK0); // test, sending months with no pressing the buttom
-	rtiREG1->CMP[0U].UDCPx = 0; // rtiReset is not reset the up register, ITR will increas all the time, if it is not 0
-	calendar_init(&my_calendar, 3, 2023);
+	//rtiStartCounter(rtiCOUNTER_BLOCK0); 				// test, sending months with no pressing the buttom
+	rtiREG1->CMP[0U].UDCPx = 0; 						// rtiReset is not reset the up register, ITR will increas all the time, if it is not 0
+	calendar_init(&my_calendar, MONTH, YEAR);
 
 	while(1)
 	{
 		/** send flag check */
 		if (send_next)
 		{
+			send_next = false;
 			if (current_month == 12)	// next year
 			{
 				current_year++;
@@ -190,14 +191,13 @@ int main(void)
 				current_month = 11;
 			}
 
-			set_month(&my_calendar, current_month, current_year); 	// change the month 
-			send_set_month(UART, &my_calendar);				// send it 
+			set_month(&my_calendar, current_month, current_year); 	// change the month
+			send_set_month(UART, &my_calendar);						// send it
 		}
 
 	}
 /* USER CODE END */
 
-    return 0;
 }
 
 
